@@ -27,10 +27,6 @@ df = pd.read_pickle(r'C:\Users\Andrew\Documents\Python Scripts\data set\nyc open
 df["Agency"].value_counts()
 (df["Borough"].value_counts()[:10]/df.shape[0]).plot(kind="bar", figsize= (10,10))
 
-fig, ax = plt.subplots(figsize = (10,10))
-sns.barplot(x=df["Descriptor"], y = df["Descriptor"].value_counts(), hue = df["Borough"]
-            , ax = ax, ci = None)
-
 (df[df["Agency"]=='NYPD']['Descriptor'].value_counts()/df.shape[0]).plot(kind="bar", figsize= (10,10))
 
 # fig, ax = plt.subplots(figsize = (10,10))
@@ -47,7 +43,7 @@ pivot = df.pivot_table(index="Created (Date Only)", columns = "Borough", values 
 pivot = pivot.rolling(7).mean()
 pivot.iloc[-300:,:5].plot(kind="line", figsize=(10,10)).set(title="Number of Complaints by Borough", ylabel = "Count")
 
-pivot = df[df["Created (Date Only)"] >= datetime.date(2020, 2, 27)].pivot_table(index="Created (Hour Only)", columns = "Descriptor", values = "Unique Key", aggfunc = "count")
+pivot = df[df["Created (Date Only)"] <= datetime.date(2020, 2, 27)].pivot_table(index="Created (Hour Only)", columns = "Descriptor", values = "Unique Key", aggfunc = "count")
 pivot = pivot.T
 pivot = pivot.sort_values(by=pivot.columns[-1],ascending=False)
 pivot = pivot.T
@@ -61,7 +57,27 @@ pivot.iloc[:10,:5].plot(kind="bar", figsize=(10,10)).set(title="Number of Compla
 
 
 '''What's happened to how long it takes to get a response or close?'''
-pivot = df.pivot_table(index="Created (Date Only)", 
+pivot = df[df["Created (Date Only)"] <= datetime.date(2020, 2, 27)].pivot_table(index="Created (Hour Only)", 
                        columns = "Borough", values = "time to close out", aggfunc = np.mean)
-pivot = pivot.rolling(7).mean()
+# pivot = pivot.rolling(7).mean()
 pivot.iloc[:,:5].plot(kind="line", figsize=(10,10)).set(title="Days to Close Out Complaint", ylabel = "Days")
+
+
+'''GIS plotting'''
+descriptors = ["Social Distancing"]
+plot_df = df[df["Descriptor"].isin(descriptors)]
+
+BBox = ((df.Longitude.min(),   df.Longitude.max(),      
+         df.Latitude.min(), df.Latitude.max()))
+
+#map from openstreetmap
+ruh_m = plt.imread(r'C:\Users\Andrew\Documents\Python Scripts\Medium Charts\NYC Open Data\StreetMap.png')
+        
+fig, ax = plt.subplots(figsize = (10,10))
+sns.scatterplot(x = plot_df["Longitude"], y = plot_df["Latitude"]
+                , hue = plot_df["Descriptor"], alpha = 0.2, ax = ax,zorder = 10,
+                size = 0.1)
+ax.set_title('Plotting Complaint Data on NYC Map')
+ax.set_xlim(BBox[0],BBox[1])
+ax.set_ylim(BBox[2],BBox[3])
+ax.imshow(ruh_m, zorder=0, extent = BBox, aspect= 'auto')
