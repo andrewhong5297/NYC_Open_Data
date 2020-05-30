@@ -72,7 +72,7 @@ pivot.iloc[:,:5].plot(kind="line", figsize=(10,10)).set(title="Days to Close Out
 
 
 '''GIS plotting GIF'''
-descriptors = ["Loud Music/Party", "Loud Talking","Social Distancing","Banging/Pounding"]
+descriptors = ["Social Distancing"]
 plot_df = df[df["Descriptor"].isin(descriptors)]
 
 BBox = ((df.Longitude.min(),   df.Longitude.max(),      
@@ -92,7 +92,7 @@ cmap = [cmap(0.1),cmap(0.2),cmap(0.3),cmap(0.4),cmap(0.5)]
 palette = dict(zip(unique, cmap))
 
 dates = df["Created (Date Only)"].unique()
-for date in dates[-100:]:
+for date in dates[-70:]:
     fig, ax = plt.subplots(figsize = (10,10))
     plot_df_single_day = plot_df[plot_df["Created (Date Only)"] == date]
     
@@ -108,13 +108,13 @@ for date in dates[-100:]:
     by_label = OrderedDict(sorted(zip(labels[1:-3], handles[1:-3])))    
     ax.legend(by_label.values(), by_label.keys(), loc = "upper left")
     
-    ax.set_title('Plotting Complaint Data on NYC Map on: ' + str(date))
+    ax.set_title('Social Distancing 311 Calls NYC on: ' + str(date))
     ax.set_xlim(BBox[0],BBox[1])
     ax.set_ylim(BBox[2],BBox[3])
     ax.imshow(ruh_m, zorder=0, extent = BBox, aspect= 'auto')
     fig.savefig(r"C:\Users\Andrew\Documents\Python Scripts\Medium Charts\GIF creation\{}.png".format(date), quality = 85)
 
-gif_name = 'COVID NYC complaints and arrests'
+gif_name = 'COVID NYC 311 Social Distancing Calls'
 fps = 6
 file_list = glob.glob(r'C:\Users\Andrew\Documents\Python Scripts\Medium Charts\GIF creation\*')
 clip = mpy.ImageSequenceClip(file_list, fps=fps)
