@@ -15,6 +15,9 @@ import datetime
 plt.style.use('ggplot')
 
 # df = pd.read_csv(r"C:\Users\Andrew\Documents\Python Scripts\data set\nyc open data\311_Service_Requests_from_2019_to_Present.csv")
+
+# df["Created (Date Only)"] = df["Created Date"].dt.date
+# df["Closed (Date Only)"] = df["Closed Date"].dt.date
 # df["time to close out"] = df["Closed (Date Only)"] - df["Created (Date Only)"]
 # df = df[pd.notnull(df["time to close out"])]
 # df["time to close out"] = df["time to close out"].dt.days
@@ -57,14 +60,19 @@ pivot.iloc[:10,:5].plot(kind="bar", figsize=(10,10)).set(title="Number of Compla
 
 
 '''What's happened to how long it takes to get a response or close?'''
+pivot = df.pivot_table(index="Created (Date Only)", 
+                       columns = "Borough", values = "time to close out", aggfunc = np.mean)
+pivot = pivot.rolling(7).mean()
+pivot.iloc[:,:5].plot(kind="line", figsize=(10,10)).set(title="Days to Close Out Complaint", ylabel = "Days")
+
 pivot = df[df["Created (Date Only)"] <= datetime.date(2020, 2, 27)].pivot_table(index="Created (Hour Only)", 
                        columns = "Borough", values = "time to close out", aggfunc = np.mean)
 # pivot = pivot.rolling(7).mean()
 pivot.iloc[:,:5].plot(kind="line", figsize=(10,10)).set(title="Days to Close Out Complaint", ylabel = "Days")
 
 
-'''GIS plotting'''
-descriptors = ["Social Distancing"]
+'''GIS plotting GIF'''
+descriptors = ["Loud Music/Party", "Loud Talking","Social Distancing","Banging/Pounding"]
 plot_df = df[df["Descriptor"].isin(descriptors)]
 
 BBox = ((df.Longitude.min(),   df.Longitude.max(),      
@@ -73,11 +81,41 @@ BBox = ((df.Longitude.min(),   df.Longitude.max(),
 #map from openstreetmap
 ruh_m = plt.imread(r'C:\Users\Andrew\Documents\Python Scripts\Medium Charts\NYC Open Data\StreetMap.png')
         
-fig, ax = plt.subplots(figsize = (10,10))
-sns.scatterplot(x = plot_df["Longitude"], y = plot_df["Latitude"]
-                , hue = plot_df["Descriptor"], alpha = 0.2, ax = ax,zorder = 10,
-                size = 0.1)
-ax.set_title('Plotting Complaint Data on NYC Map')
-ax.set_xlim(BBox[0],BBox[1])
-ax.set_ylim(BBox[2],BBox[3])
-ax.imshow(ruh_m, zorder=0, extent = BBox, aspect= 'auto')
+import glob
+import moviepy.editor as mpy
+from collections import OrderedDict
+
+#mapping consistent colors
+unique = plot_df["Descriptor"].unique()
+cmap = plt.cm.get_cmap('Set1')
+cmap = [cmap(0.1),cmap(0.2),cmap(0.3),cmap(0.4),cmap(0.5)]
+palette = dict(zip(unique, cmap))
+
+dates = df["Created (Date Only)"].unique()
+for date in dates[-100:]:
+    fig, ax = plt.subplots(figsize = (10,10))
+    plot_df_single_day = plot_df[plot_df["Created (Date Only)"] == date]
+    
+    #plotting nyc complaints
+    sns.scatterplot(x = plot_df_single_day["Longitude"], y = plot_df_single_day["Latitude"]
+                , hue = plot_df_single_day["Descriptor"], alpha = 0.7, ax = ax,zorder = 10,
+                size = 0.1, palette = palette)
+    
+    #plotting nyc arrests
+    
+    #creating legend that is consistent and doesn't repeat
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = OrderedDict(sorted(zip(labels[1:-3], handles[1:-3])))    
+    ax.legend(by_label.values(), by_label.keys(), loc = "upper left")
+    
+    ax.set_title('Plotting Complaint Data on NYC Map on: ' + str(date))
+    ax.set_xlim(BBox[0],BBox[1])
+    ax.set_ylim(BBox[2],BBox[3])
+    ax.imshow(ruh_m, zorder=0, extent = BBox, aspect= 'auto')
+    fig.savefig(r"C:\Users\Andrew\Documents\Python Scripts\Medium Charts\GIF creation\{}.png".format(date), quality = 85)
+
+gif_name = 'COVID NYC complaints and arrests'
+fps = 6
+file_list = glob.glob(r'C:\Users\Andrew\Documents\Python Scripts\Medium Charts\GIF creation\*')
+clip = mpy.ImageSequenceClip(file_list, fps=fps)
+clip.write_gif(r'C:\Users\Andrew\Documents\Python Scripts\Medium Charts\GIF creation\{}.gif'.format(gif_name), fps=fps)
